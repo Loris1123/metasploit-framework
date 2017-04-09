@@ -100,7 +100,7 @@ RESPONSE_TIMEOUT = 0x101
 # @param bus [String] unique CAN bus identifier
 # @param srcId [Integer] Integer representation of the Sending CAN ID
 # @param dstId [Integer] Integer representation of the receiving CAN ID
-# @param target [Integer] Integer representation of the KWP2000 target code 
+# @param target [Integer] Integer representation of the KWP2000 target code
 # @param serviceId [Integer] Integer representation of the KWP2000 service ID
 # @param data [Array] KWP message data
 # @param opt [Hash] Additional options to be passed to automotive.send_isotp_and_wait_for_response
@@ -160,7 +160,7 @@ def send_kwp2000_request(bus, srcId, dstId, target, serviceId, data, opt={})
     end
 
     # send KWP2000 request
-    response = client.automotive.cansend_and_wait_for_response(bus, srcId, dstId, data, opt)
+    response = client.automotive.send_isotp_and_wait_for_response(bus, srcId, dstId, data, opt)
 
     if response.has_key? "Packets" and response["Packets"].size > 0
       data = response["Packets"][0]["DATA"]
@@ -180,7 +180,7 @@ def send_kwp2000_request(bus, srcId, dstId, target, serviceId, data, opt={})
       # get length of data in response
       receivedLen = data[2].hex - 1               # subtract one for service ID
       receivedCount = 0
-      for i in 0..3 do 
+      for i in 0..3 do
         if (receivedLen - receivedCount) > 0
           response_data.push(data[4 + i])
           receivedCount += 1
@@ -195,7 +195,7 @@ def send_kwp2000_request(bus, srcId, dstId, target, serviceId, data, opt={})
     while (receivedRowCount > 0)
       # send acknowledge message for specific row
       ack_message = [0x40, TARGET_TRIONIC, 0x3F, 0x80 | receivedRowCount, 0x00, 0x00, 0x00, 0x00]
-      response = client.automotive.cansend_and_wait_for_response(bus, 266, dstId, ack_message, opt)
+      response = client.automotive.send_isotp_and_wait_for_response(bus, 266, dstId, ack_message, opt)
 
       if response.has_key? "Packets" and response["Packets"].size > 0
         data = response["Packets"][0]["DATA"]
@@ -241,7 +241,7 @@ def send_raw_kwp2000_request(bus, srcId, dstId, data, opt={})
     return {}
   end
 
-  client.automotive.cansend_and_wait_for_response(bus, srcId, dstId, data, opt)
+  client.automotive.send_isotp_and_wait_for_response(bus, srcId, dstId, data, opt)
 end
 
 
