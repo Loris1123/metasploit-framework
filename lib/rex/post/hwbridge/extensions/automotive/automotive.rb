@@ -108,8 +108,8 @@ class Automotive < Extension
     if data.size <= 8
       data = array2hex(data).join
       request_str = "/automotive/#{bus}/cansend_and_wait?srcid=#{srcId}&dstid=#{dstId}&data=#{data}"
-      request_str += "&timeout=#{opt["TIMEOUT"]}" if opt.has_key? "TIMEOUT"
-      request_str += "&maxpkts=#{opt["MAXPKTS"]}" if opt.has_key? "MAXPKTS"
+      request_str += "&timeout=#{opt[:TIMEOUT]}" if opt.has_key? :TIMEOUT
+      request_str += "&maxpkts=#{opt[:MAXPKTS]}" if opt.has_key? :MAXPKTS
       return check_for_errors(client.send_request(request_str))
     end
     return nil
@@ -122,8 +122,8 @@ class Automotive < Extension
     if data.size < 8
       data = array2hex(data).join
       request_str = "/automotive/#{bus}/isotpsend_and_wait?srcid=#{src_id}&dstid=#{dst_id}&data=#{data}"
-      request_str += "&timeout=#{opt['TIMEOUT']}" if opt.key? "TIMEOUT"
-      request_str += "&maxpkts=#{opt['MAXPKTS']}" if opt.key? "MAXPKTS"
+      request_str += "&timeout=#{opt[:TIMEOUT]}" if opt.key? :TIMEOUT
+      request_str += "&maxpkts=#{opt[:MAXPKTS]}" if opt.key? :MAXPKTS
       return check_for_errors(client.send_request(request_str))
     end
     nil
