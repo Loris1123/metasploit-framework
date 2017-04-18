@@ -39,8 +39,10 @@ class MetasploitModule < Msf::Post
   end
 
   def run
-    # start KWP2000 session
-    #start_kwp2000_session(datastore["CANBUS"])
     print_status("Running")
+
+    data = [0x1f, 0xc0, 0x00, 0x10, 0x00, 0x03, 0x01]
+    puts client.automotive.cansend_and_wait_for_response("slcan0", "200", "21F", data)
+
   end
 end
