@@ -129,9 +129,6 @@ class Automotive < Extension
     nil
   end
 
-
-
-
   attr_reader :buses, :active_bus
 
   private
