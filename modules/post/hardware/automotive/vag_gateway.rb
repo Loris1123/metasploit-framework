@@ -68,23 +68,23 @@ class MetasploitModule < Msf::Post
   def run
     print_status("Running")
 
-    init_communication()
-
+    init_communication
+    tester_present
   end
 
 
   def init_communication
     send_request_and_expect("200", [0x1F, 0xC0, 0x00, 0x10, 0x00, 0x03, 0x01], "21F", [0x00, 0xD0, 0x00, 0x03, 0x2E, 0x03, 0x01])
-    send_request_and_expect("32E", [0xA0, 0x0F, 0x8A, 0xFF, 0x32, 0xFF], "300", [0xA1, 0x0F, 0x8A, 0xFF, 0x4A, 0xFF])
+    #send_request_and_expect("32E", [0xA0, 0x0F, 0x8A, 0xFF, 0x32, 0xFF], "300", [0xA1, 0x0F, 0x8A, 0xFF, 0x4A, 0xFF])
 
     # Expecting multiple packages
-    client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "32E", "300", [0x10, 0x00, 0x02, 0x10, 0x89], {"MAXPKTS": 2})
-    send_ack
-    client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "32E", "300", [0x11, 0x00, 0x02, 0x1A, 0x9B], {"MAXPKTS": 2})
-    send_ack
-    client.automotive.cansend(datastore["CANBUS"], "32E", "22000722F187F189")
-    client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "32E", "300", [0x13, 0xF1, 0x97], {"MAXPKTS": 7})
-    send_ack(6)
+    #client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "32E", "300", [0x10, 0x00, 0x02, 0x10, 0x89], {"MAXPKTS": 2})
+    ##send_ack
+    #client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "32E", "300", [0x11, 0x00, 0x02, 0x1A, 0x9B], {"MAXPKTS": 2})
+    #send_ack
+    #client.automotive.cansend(datastore["CANBUS"], "32E", "22000722F187F189")
+    #client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "32E", "300", [0x13, 0xF1, 0x97], {"MAXPKTS": 7})
+    #send_ack(6)
   end
 
   # Sending an ACK to the sender.
@@ -95,5 +95,13 @@ class MetasploitModule < Msf::Post
     client.automotive.cansend(datastore["CANBUS"], "32E", "B#{@ack_counter.to_s(16)}")
   end
 
+  # Sending a keep-alive packet every 2 seconds to keep the session alive
+  def tester_present
+    # TODO Use a thread.
+    while 1
+      send_request_and_expect("32E", [0xA0, 0x0F, 0x8A, 0xFF, 0x32, 0xFF], "300", [0xA1, 0x0F, 0x8A, 0xFF, 0x4A, 0xFF])
+      sleep 2
+    end
+  end
 
 end
