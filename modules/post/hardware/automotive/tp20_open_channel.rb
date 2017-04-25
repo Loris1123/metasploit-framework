@@ -23,6 +23,8 @@ class MetasploitModule < Msf::Post
       OptString.new('CANBUS', [false, "CAN Bus to perform scan on, defaults to connected bus", nil])
     ], self.class)
 
+    @device_id = nil
+
   end
 
   def run
@@ -45,10 +47,10 @@ class MetasploitModule < Msf::Post
       print_error("Got no response from device. Could not open channel.")
       return false
     end
-    if response["Packets"][0]["DATA"] != ["00", "D0", "00", "03", "2E", "03", "01"]
-      print_error("Got invalid response from device. Could not open channel.")
-      return false
-    end
+
+    # Parse device-id from response
+    @device_id = response["Packets"][0]["DATA"][5][1] + response["Packets"][0]["DATA"][4]
+    print_good "Channel is open. Device want's to recieve packages at ID #{@device_id}"
     return true
   end
 
@@ -56,7 +58,7 @@ class MetasploitModule < Msf::Post
   # TODO: Improve to be more generic.
   #       For now only the captured Gateway traffic is used.
   def keep_alive
-    response = client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "32E", "300", [0xA0, 0x0F, 0x8A, 0xFF, 0x32, 0xFF], {"MAXPKTS": 1})
+    response = client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], @device_id, "300", [0xA0, 0x0F, 0x8A, 0xFF, 0x32, 0xFF], {"MAXPKTS": 1})
     if response["Packets"][0]["DATA"] != ["A1", "0F", "8A", "FF", "4A", "FF"]
       print_error("Got invalid response from device. Could not open channel.")
     end
