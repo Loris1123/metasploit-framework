@@ -20,7 +20,8 @@ class MetasploitModule < Msf::Post
     ))
 
     register_options([
-      OptString.new('CANBUS', [false, "CAN Bus to perform scan on, defaults to connected bus", nil])
+      OptString.new('CANBUS', [true, "CAN Bus to perform scan on, defaults to connected bus", nil]),
+      OptString.new('SENDERID', [false, "CAN ID of the messages from Metasploit", "300"])
     ], self.class)
 
     @device_id = nil
@@ -42,7 +43,10 @@ class MetasploitModule < Msf::Post
   # TODO: Improve to be more generic.
   #       For now only the captured Gateway traffic is used.
   def open_channel
-    response = client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "200", "21F", [0x1F, 0xC0, 0x00, 0x10, 0x00, 0x03, 0x01], {"MAXPKTS": 1})
+    request_id_high = datastore["SENDERID"][0].to_i(16)
+    request_id_low = datastore["SENDERID"][1..2].to_i(16)
+
+    response = client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "200", "21F", [0x1F, 0xC0, 0x00, 0x10, request_id_low, request_id_high, 0x01], {"MAXPKTS": 1})
     if response["Packets"].size == 0
       print_error("Got no response from device. Could not open channel.")
       return false
