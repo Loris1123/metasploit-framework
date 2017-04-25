@@ -26,7 +26,7 @@ class MetasploitModule < Msf::Post
   end
 
   def run
-    open_channel
+    return if !open_channel
     Thread.new{
       while client.alive?
         keep_alive
@@ -41,6 +41,10 @@ class MetasploitModule < Msf::Post
   #       For now only the captured Gateway traffic is used.
   def open_channel
     response = client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], "200", "21F", [0x1F, 0xC0, 0x00, 0x10, 0x00, 0x03, 0x01], {"MAXPKTS": 1})
+    if response["Packets"].size == 0
+      print_error("Got no response from device. Could not open channel.")
+      return false
+    end
     if response["Packets"][0]["DATA"] != ["00", "D0", "00", "03", "2E", "03", "01"]
       print_error("Got invalid response from device. Could not open channel.")
       return false
