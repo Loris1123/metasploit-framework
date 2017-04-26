@@ -40,7 +40,7 @@ class MetasploitModule < Msf::Post
     close_channel    # Makes no sense here? When client is not alive anymore, close channel cannot be sent
   end
 
-  # Opens a TP 2.0 channel by sending a C0 (Channel-Open) request with the wanted ID form SENDERID.
+  # Opens a TP 2.0 channel by sending a C0 (Channel-Open) request with the wanted ID form RECEIVERID.
   # The ID of the device will be parsed from the response
   def open_channel
     request_id_high = datastore["RECEIVERID"][0].to_i(16)
@@ -62,7 +62,7 @@ class MetasploitModule < Msf::Post
   # Keeps a TP 2.0 channel alive.
   # Currently using A1 packages, which are settings. TODO: Check for a correct way of keeping alive.
   def keep_alive
-    response = client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], @device_id, datastore["SENDERID"], [0xA0, 0x0F, 0x8A, 0xFF, 0x32, 0xFF], {"MAXPKTS": 1})
+    response = client.automotive.cansend_and_wait_for_response(datastore["CANBUS"], @device_id, datastore["RECEIVERID"], [0xA0, 0x0F, 0x8A, 0xFF, 0x32, 0xFF], {"MAXPKTS": 1})
     if response["Packets"][0]["DATA"] != ["A1", "0F", "8A", "FF", "4A", "FF"]
       print_error("Got invalid response from device. Could not open channel.")
     end
