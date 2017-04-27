@@ -27,7 +27,7 @@ class TP20
 
     if (data.size / 2) < 6
       # Possible in single frame
-      puts "1#{@frame_counter.to_s(16)}#{length}#{first_data}"
+      puts "1#{@frame_counter.to_s(16)}#{length}#{data}"
       @frame_counter += 1 % 16
       return
     end
@@ -40,27 +40,16 @@ class TP20
     @frame_counter += 1 % 16
 
     # Loop for the middle frame
-    frame_data, data = data[0..14], data[15..-1]
+    frame_data, data = data[0..13], data[14..-1]
     while data != nil
       puts "2#{@frame_counter.to_s(16)}#{frame_data}"
       @frame_counter += 1 % 16
-      frame_data, data = data[0..14], data[15..-1]
+      frame_data, data = data[0..13], data[14..-1]
     end
 
     # Last Frame
     puts "1#{@frame_counter.to_s(16)}#{frame_data}"
     @frame_counter += 1 % 16
-
-    #puts length
-    #puts first_data
-    # Send first package
-    #first_data[0..10]
-    #@client.automotive.cansend(@canbus, @device_id, "2#{@pkg_counter}")
-
-
-
-    #@client.automotive.cansend(@canbus, @device_id, data)
-    #@client.automotive.cansend_and_wait_for_response(@canbus, @device_id, @sender_id, data)
   end
 
   # Opens a TP 2.0 channel by sending a C0 (Channel-Open) request with the wanted ID form RECEIVERID.
