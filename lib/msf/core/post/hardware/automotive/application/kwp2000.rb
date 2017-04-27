@@ -13,7 +13,7 @@ class KWP2000
 
   # Invalid request to test the function of the underlying transport protocol
   def test_request()
-    @tp.send("112233445566778899AA")
+    @tp.send("0123456789ABCDEF")
   end
 end
 
