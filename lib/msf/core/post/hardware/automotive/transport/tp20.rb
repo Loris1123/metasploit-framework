@@ -19,15 +19,15 @@ class TP20
 
 
   def send(data)
+
     open_channel if !@channel_open
     puts "Channel is open. now send"
-
     # Create 2 Byte-length. Add padding of zeros if necessary
     length = (data.size / 2).to_s(16).rjust(4, '0')
 
     if (data.size / 2) < 6
       # Possible in single frame
-      puts "1#{@frame_counter.to_s(16)}#{length}#{data}"
+      @client.automotive.cansend(@canbus, @device_id, "1#{@frame_counter.to_s(16)}#{length}#{data}")
       @frame_counter = (@frame_counter + 1 ) % 16
       return
     end
@@ -36,19 +36,20 @@ class TP20
 
     # Create first data of 5-byte
     first_data, data = data[0..9],data[10..-1]
-    puts "2#{@frame_counter.to_s(16)}#{length}#{first_data}"
+
+    @client.automotive.cansend(@canbus, @device_id, "2#{@frame_counter.to_s(16)}#{length}#{first_data}")
     @frame_counter = (@frame_counter + 1 ) % 16
 
     # Loop for the middle frame
     frame_data, data = data[0..13], data[14..-1]
     while data != nil
-      puts "2#{@frame_counter.to_s(16)}#{frame_data}"
+      @client.automotive.cansend(@canbus, @device_id, "2#{@frame_counter.to_s(16)}#{frame_data}")
       @frame_counter = (@frame_counter + 1 ) % 16
       frame_data, data = data[0..13], data[14..-1]
     end
 
     # Last Frame
-    puts "1#{@frame_counter.to_s(16)}#{frame_data}"
+    @client.automotive.cansend(@canbus, @device_id, "1#{@frame_counter.to_s(16)}#{frame_data}")
     @frame_counter = (@frame_counter + 1 ) % 16
   end
 
