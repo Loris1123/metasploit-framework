@@ -19,14 +19,11 @@ class TP20
   end
 
 
-  def send(bus, id, data)
+  def send(data)
     open_channel if !@channel_open
-
-    @client.automotive.cansend(bus, id, data)
+    puts "Channel is open. now send"
+    @client.automotive.cansend(@canbus, @device_id, data)
   end
-
-  #def send_ack(packages=1)
-  #end
 
   # Opens a TP 2.0 channel by sending a C0 (Channel-Open) request with the wanted ID form RECEIVERID.
   # The ID of the device will be parsed from the response
@@ -46,6 +43,10 @@ class TP20
     # Parse device-id from response
     @device_id = response["Packets"][0]["DATA"][5][1] + response["Packets"][0]["DATA"][4]
     puts "Channel is open. Device want's to recieve packages at ID #{@device_id}"
+    @channel_open = true
+
+    keep_alive
+    sleep 0.5 # To prevent timing issues. "send" could be faster than the first keep_alive
     return true
   end
 
