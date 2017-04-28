@@ -17,11 +17,11 @@ class TP20
     @ack_counter = 0
   end
 
-
+  # Send a raw request. Data can have many bytes. Segmenetation will
+  # be done automatically.
+  # e.g.: data = 'DEADBEEFDEADBEEF'
   def send(data)
-
     open_channel if !@channel_open
-    puts "Channel is open. now send"
     # Create 2 Byte-length. Add padding of zeros if necessary
     length = (data.size / 2).to_s(16).rjust(4, '0')
 
@@ -91,6 +91,14 @@ class TP20
         sleep 1.5
       end
     end
+  end
+
+  # Send an acknowledge.
+  # packets is the number of packets received.
+  # An acknowledge is 1 Byte: "B<pkg_counter>"
+  def send_ack(packets=1)
+    @ack_counter = (@ack_counter + packets) % 16
+    @client.automotive.cansend(@canbus, "123", "B#{@ack_counter.to_s(16)}")
   end
 
 end
