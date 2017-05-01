@@ -7,13 +7,13 @@ module Transport
 
 class TP20
 
-  def initialize(client, canbus, sender_id="300")
+  def initialize(client, canbus, tester_id="300")
     @client = client
     @canbus = canbus
-    @sender_id = sender_id
-    @device_id = nil # Will be set by open_channel
-    @frame_counter = 1
+    @tester_id = tester_id    # CAN ID of masseges addressed to the tester
+    @device_id = nil # CAN ID of magges addressed to the device. Will be set by open_channel
     @channel_open = false
+    @frame_counter = 0
     @ack_counter = 0
   end
 
@@ -56,8 +56,8 @@ class TP20
   # Opens a TP 2.0 channel by sending a C0 (Channel-Open) request with the wanted ID form RECEIVERID.
   # The ID of the device will be parsed from the response
   def open_channel
-    request_id_high = @sender_id[0].to_i(16)
-    request_id_low = @sender_id[1..2].to_i(16)
+    request_id_high = @tester_id[0].to_i(16)
+    request_id_low = @tester_id[1..2].to_i(16)
 
     # TODO: Check 200 and 21F
     response = @client.automotive.cansend_and_wait_for_response(@canbus, "200", "21F", [0x1F, 0xC0, 0x00, 0x10, request_id_low, request_id_high, 0x01], {"MAXPKTS": 1})
@@ -83,8 +83,7 @@ class TP20
   def keep_alive
     Thread.new do
       while @client.alive?
-        response = @client.automotive.cansend_and_wait_for_response(@canbus, @device_id, @sender_id, [0xA0, 0x0F, 0x8A, 0xFF, 0x32, 0xFF], {"MAXPKTS": 1})
-        puts "Response: #{response}"
+        response = @client.automotive.cansend_and_wait_for_response(@canbus, @device_id, @tester_id, [0xA0, 0x0F, 0x8A, 0xFF, 0x32, 0xFF], {"MAXPKTS": 1})
         if response["Packets"][0]["DATA"] != ["A1", "0F", "8A", "FF", "4A", "FF"]
           puts("Got invalid response from device. Could not open channel.")
         end
@@ -98,8 +97,9 @@ class TP20
   # An acknowledge is 1 Byte: "B<pkg_counter>"
   def send_ack(packets=1)
     @ack_counter = (@ack_counter + packets) % 16
-    @client.automotive.cansend(@canbus, "123", "B#{@ack_counter.to_s(16)}")
+    @client.automotive.cansend(@canbus, @device_id, "B#{@ack_counter.to_s(16)}")
   end
+
 
 end
 
