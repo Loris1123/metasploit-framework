@@ -39,7 +39,7 @@ class Automotive < Extension
   # @return [Boolean] return true if bus is valid
   def is_valid_bus?(bus)
     valid = false
-    get_supported_buses if buses.nil?
+    buses = get_supported_buses if buses.nil?
     unless bus.blank?
       buses.each do |b|
         valid = true if b["bus_name"] == bus
