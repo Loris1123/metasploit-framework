@@ -52,7 +52,7 @@ class MetasploitModule < Msf::Auxiliary
   # TODO: Check if listener for ID is already given.
   # TODO: maybe add a custom identifier, to allow multiple listeners for an ID
   # TODO: Add support for multiple buses
-  def candump(bus, id)
+  def candump_listener(bus, id)
     # Run the command in background and continiously grap the output
     # See http://stackoverflow.com/questions/1154846/continuously-read-from-stdout-of-external-process-in-ruby
     @candumps[id.to_s] = [] if @candumps[id.to_s].nil?
@@ -66,6 +66,14 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
     {"status" => "success"}  # Response
+  end
+
+  def candump(bus, id, timeout, maxpkts)
+    $candump_sniffer = Thread.new do
+      output = `candump #{bus},#{id}:FFFFFF -T #{timeout} -n #{maxpkts}`
+      @pkt_response = candump2hash(output)
+      Thread::exit
+    end
   end
 
   # Returns <count> numbers of CAN packages from the buffered frames of ID <id>
@@ -180,45 +188,45 @@ class MetasploitModule < Msf::Auxiliary
   end
 
 
-    # Sends a raw CAN packet and waits for a response or a timeout
-    # bus = string
-    # srcid = hex id of the sent packet
-    # dstid = hex id of the return packets
-    # data = string of hex bytes to send
-    # timeout = optional int to timeout on lack of response
-    # maxpkts = max number of packets to recieve
-    def cansend_and_wait(bus, srcid, dstid, data, timeout=2000, maxpkts=3)
-      result = {}
-      result["Success"] = false
-      srcid = srcid.to_i(16).to_s(16)
-      dstid = dstid.to_i(16).to_s(16)
-      bytes = data.scan(/../)
-      if bytes.size > 8
-        print_error("Data section currently has to be 8 or less bytes")
-        return result
-      else
-        bytes = bytes.join
-      end
-      # Should we ever require isotpsend for this?
-      `which cansend`
-      if not $?.success?
-        print_error("cansend from can-utils not found in path")
-        return result
-      end
-      @can_interfaces.each do |can|
-        if can == bus
-          candump(bus,dstid,timeout,maxpkts)
-          system("cansend #{bus} #{srcid}##{bytes}")
-          result["Success"] = true if $?.success?
-          result["Packets"] = []
-          $candump_sniffer.join
-          if not @pkt_response.empty?
-            result = @pkt_response
-          end
+  # Sends a raw CAN packet and waits for a response or a timeout
+  # bus = string
+  # srcid = hex id of the sent packet
+  # dstid = hex id of the return packets
+  # data = string of hex bytes to send
+  # timeout = optional int to timeout on lack of response
+  # maxpkts = max number of packets to recieve
+  def cansend_and_wait(bus, srcid, dstid, data, timeout=2000, maxpkts=3)
+    result = {}
+    result["Success"] = false
+    srcid = srcid.to_i(16).to_s(16)
+    dstid = dstid.to_i(16).to_s(16)
+    bytes = data.scan(/../)
+    if bytes.size > 8
+      print_error("Data section currently has to be 8 or less bytes")
+      return result
+    else
+      bytes = bytes.join
+    end
+    # Should we ever require isotpsend for this?
+    `which cansend`
+    if not $?.success?
+      print_error("cansend from can-utils not found in path")
+      return result
+    end
+    @can_interfaces.each do |can|
+      if can == bus
+        candump(bus,dstid,timeout,maxpkts)
+        system("cansend #{bus} #{srcid}##{bytes}")
+        result["Success"] = true if $?.success?
+        result["Packets"] = []
+        $candump_sniffer.join
+        if not @pkt_response.empty?
+          result = @pkt_response
         end
       end
-      result
     end
+    result
+  end
 
 
 
@@ -252,8 +260,8 @@ class MetasploitModule < Msf::Auxiliary
         send_response_html(cli, get_auto_supported_buses().to_json, { 'Content-Type' => 'application/json' })
       elsif request.uri =~ /automotive\/(\w+)\/candump\?id=(\w+)/
         bus = $1; id = $2
-        print_status("Start candump for ID #{id}")
-        send_response_html(cli, candump(bus, id).to_json(), { 'Content-Type' => 'application/json' })
+        print_status("Start candump listener for ID #{id}")
+        send_response_html(cli, candump_listener(bus, id).to_json(), { 'Content-Type' => 'application/json' })
       elsif request.uri =~ /automotive\/(\w+)\/getbuffer\?id=(\w+)&count=(\w+)/
         bus = $1; id = $2; count = $3
         send_response_html(cli, get_buffered_packages(id, count).to_json(), { 'Content-Type' => 'application/json' })

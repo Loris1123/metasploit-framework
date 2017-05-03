@@ -15,6 +15,9 @@ class TP20
     @channel_open = false
     @frame_counter = 0
     @ack_counter = 0
+
+    # Start listener for packages addressed to Metasploit (the "tester")
+    @client.automotive.candump(@canbus, @tester_id)
   end
 
   # Send a raw request. Data can have many bytes. Segmenetation will
