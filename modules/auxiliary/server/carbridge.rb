@@ -61,7 +61,7 @@ class MetasploitModule < Msf::Auxiliary
     Thread.new do
       PTY.spawn(command) do |stdout, stdin, pid|
         begin
-          stdout.each{ |l| @candumps[id.to_s].push(l)}
+          stdout.each{ |l| @candumps[id.to_s].push(l.split()[3..-1])}
         end
       end
     end
