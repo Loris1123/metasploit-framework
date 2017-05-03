@@ -129,6 +129,14 @@ class Automotive < Extension
     nil
   end
 
+  def candump(bus, id)
+    client.send_request("/automotive/#{bus}/candump?id=#{id}")
+  end
+
+  def get_buffered_packages(bus, id, count)
+    client.send_request("/automotive/#{bus}/getbuffer?id=#{id}&count=#{count}")
+  end
+
   attr_reader :buses, :active_bus
 
   private
