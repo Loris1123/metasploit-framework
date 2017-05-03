@@ -8,6 +8,7 @@
 ##
 
 require 'msf/core'
+require 'pty'
 
 class MetasploitModule < Msf::Auxiliary
 
@@ -40,7 +41,41 @@ class MetasploitModule < Msf::Auxiliary
     @last_errors = {}
     @server_started = Time.new
     @can_interfaces = []
-    @pkt_response = {}  # Candump returned packets
+
+    # candumbs contain the output of candump when listening for a specific package of the following format:
+    #{"ID1" => [frame1, frame2,...], "ID2" => [frame2, frame3,..]}
+    @candumps = {}
+
+  end
+
+  # Adds the received packages of the given ID to @candumps
+  # TODO: Check if listener for ID is already given.
+  # TODO: maybe add a custom identifier, to allow multiple listeners for an ID
+  # TODO: Add support for multiple buses
+  def candump(bus, id)
+    # Run the command in background and continiously grap the output
+    # See http://stackoverflow.com/questions/1154846/continuously-read-from-stdout-of-external-process-in-ruby
+    @candumps[id.to_s] = [] if @candumps[id.to_s].nil?
+
+    command = "candump #{bus},#{id}:FFF"
+    Thread.new do
+      PTY.spawn(command) do |stdout, stdin, pid|
+        begin
+          stdout.each{ |l| @candumps[id.to_s].push(l)}
+        end
+      end
+    end
+    {"status" => "success"}  # Response
+  end
+
+  # Returns <count> numbers of CAN packages from the buffered frames of ID <id>
+  # from @candumps
+  def get_buffered_packages(id, count)
+    if @candumps[id.to_s].nil?
+      {"status" => "No buffer of id #{id} available"}
+    else
+      @candumps[id.to_s].shift(count.to_i)
+    end
   end
 
   # Detects CAN interfaces based on their name.
@@ -89,6 +124,8 @@ class MetasploitModule < Msf::Auxiliary
 
   def get_ip_config
   end
+
+
 
   def get_auto_supported_buses
     detect_can()
@@ -142,13 +179,6 @@ class MetasploitModule < Msf::Auxiliary
     hash
   end
 
-  def candump(bus, id, timeout, maxpkts)
-    $candump_sniffer = Thread.new do
-      output = `candump #{bus},#{id}:FFFFFF -T #{timeout} -n #{maxpkts}`
-      @pkt_response = candump2hash(output)
-      Thread::exit
-    end
-  end
 
     # Sends a raw CAN packet and waits for a response or a timeout
     # bus = string
@@ -188,7 +218,7 @@ class MetasploitModule < Msf::Auxiliary
         end
       end
       result
-  end
+    end
 
 
 
@@ -220,6 +250,13 @@ class MetasploitModule < Msf::Auxiliary
       if request.uri =~ /automotive\/supported_buses/
         print_status("Sending known buses...")
         send_response_html(cli, get_auto_supported_buses().to_json, { 'Content-Type' => 'application/json' })
+      elsif request.uri =~ /automotive\/(\w+)\/candump\?id=(\w+)/
+        bus = $1; id = $2
+        print_status("Start candump for ID #{id}")
+        send_response_html(cli, candump(bus, id).to_json(), { 'Content-Type' => 'application/json' })
+      elsif request.uri =~ /automotive\/(\w+)\/getbuffer\?id=(\w+)&count=(\w+)/
+        bus = $1; id = $2; count = $3
+        send_response_html(cli, get_buffered_packages(id, count).to_json(), { 'Content-Type' => 'application/json' })
       elsif request.uri =~ /automotive\/(\w+)\/cansend\?id=(\w+)&data=(\w+)/
         print_status("Request to send CAN packets for #{$1} => #{$2}##{$3}")
         send_response_html(cli, cansend($1, $2, $3).to_json(), { 'Content-Type' => 'application/json' })
