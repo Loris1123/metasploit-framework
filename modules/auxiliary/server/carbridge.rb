@@ -228,9 +228,6 @@ class MetasploitModule < Msf::Auxiliary
     result
   end
 
-
-
-
   def not_supported
     { "status" => "not supported" }
   end
