@@ -4,13 +4,11 @@ require 'msf/core/modules/external/bridge'
 
 class Msf::Modules::External::Shim
   def self.generate(module_path)
-    mod = Msf::Modules::External::Bridge.new(module_path)
+    mod = Msf::Modules::External::Bridge.open(module_path)
     return '' unless mod.meta
     case mod.meta['type']
     when 'remote_exploit.cmd_stager.wget'
-      s = remote_exploit_cmd_stager(mod)
-      File.open('/tmp/module', 'w') {|f| f.write(s)}
-      s
+      remote_exploit_cmd_stager(mod)
     end
   end
 
@@ -65,7 +63,7 @@ class MetasploitModule < Msf::Exploit::Remote
   end
 
   def execute_command(cmd, opts)
-    mod = Msf::Modules::External::Bridge.new(#{mod.path.dump})
+    mod = Msf::Modules::External::Bridge.open(#{mod.path.dump})
     mod.run(datastore.merge(command: cmd))
     wait_status(mod)
     true
