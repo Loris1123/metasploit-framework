@@ -266,11 +266,11 @@ class MetasploitModule < Msf::Auxiliary
         bus = $1; id = $2; count = $3
         send_response_html(cli, get_buffered_packages(id, count).to_json(), { 'Content-Type' => 'application/json' })
       elsif request.uri =~ /automotive\/(\w+)\/cansend\?id=(\w+)&data=(\w+)/
-        print_status("Request to send CAN packets for #{$1} => #{$2}##{$3}")
+        #print_status("Request to send CAN packets for #{$1} => #{$2}##{$3}")
         send_response_html(cli, cansend($1, $2, $3).to_json(), { 'Content-Type' => 'application/json' })
       elsif request.uri =~/automotive\/(\w+)\/cansend_and_wait\?srcid=(\w+)&dstid=(\w+)&data=(\w+)/
         bus = $1; srcid = $2; dstid = $3; data = $4
-        print_status("Request to send CAN packet and wait for response  #{srcid}##{data} => #{dstid}")
+        #print_status("Request to send CAN packet and wait for response  #{srcid}##{data} => #{dstid}")
         timeout = 1500
         maxpkts = 3
         timeout = $1 if request.uri=~/&timeout=(\d+)/

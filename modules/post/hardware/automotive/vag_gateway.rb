@@ -40,7 +40,11 @@ class MetasploitModule < Msf::Post
   def run
     tp = TP20.new(client, datastore["CANBUS"])
     kwp = KWP2000.new(tp)
-    kwp.test_request
+    response = kwp.start_diagnostic_session("89")
+    puts "response: #{response}"
+    if response != "89"
+      print_error("Could not start diagnostic session")
+    end
   end
 
 end
