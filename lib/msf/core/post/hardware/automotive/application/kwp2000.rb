@@ -18,16 +18,18 @@ class KWP2000
   # Param is manufacturer specific.
   # Returns the manufacturer specific response if successful
   # nil of not successful
-  def start_diagnostic_session(param="00")
+  def start_diagnostic_session(param)
     response = @tp.send_and_wait_for_response("#{START_DIAGNOSTIC_SESSION}#{param}")
     if response[0] == "50"
       # Positive response. Return manufacturer specific response
-      puts("KWP2000: Start Diagnostic successful")
       return response[1]
     else
-      puts("KWP2000: Start Diagnostic failed")
       return nil
     end
+  end
+
+  def read_data_by_common_identify(param)
+    puts "Not supported yet"
   end
 
   def security_access(code)
