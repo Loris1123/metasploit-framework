@@ -115,7 +115,6 @@ class Automotive < Extension
     return nil
   end
 
-
   def send_isotp_and_wait_for_response(bus, src_id, dst_id, data, opt = {})
     # TODO: Implement sending ISO-TP > 8 bytes
     data = [ data ] if data.is_a? Integer
@@ -129,12 +128,16 @@ class Automotive < Extension
     nil
   end
 
-  def candump(bus, id)
-    client.send_request("/automotive/#{bus}/candump?id=#{id}")
+  def set_transport_protocol(bus, transport_protocol)
+    client.send_request("/automotive/#{bus}/setTransportProtocol?tp=#{transport_protocol}")
   end
 
-  def get_buffered_packages(bus, id, count)
-    client.send_request("/automotive/#{bus}/getbuffer?id=#{id}&count=#{count}")
+  def send_data(bus, data)
+    client.send_request("/automotive/#{bus}/sendData?data=#{data}")
+  end
+
+  def send_data_and_wait_for_response(bus, data)
+    client.send_request("/automotive/#{bus}/sendDataAndWaitForResponse?data=#{data}")
   end
 
   attr_reader :buses, :active_bus

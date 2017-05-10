@@ -4,10 +4,13 @@
 ##
 
 require 'msf/core'
+require 'msf/core/post/hardware/automotive/transport/tp20'
 require 'msf/core/post/hardware/automotive/application/kwp2000'
+
 
 class MetasploitModule < Msf::Post
 
+  include Msf::Post::Hardware::Automotive::Transport
   include Msf::Post::Hardware::Automotive::Application
 
   def initialize(info={})
@@ -15,7 +18,7 @@ class MetasploitModule < Msf::Post
     super(update_info(info,
         'Name'          => 'VW TP 2.0 Rend Request',
         'Description'   => %q{
-          Starts a diagnostic session for a VAG Gateway.
+          Reads the identificaion of the VAG Gateway. An open channel is required
         },
         'License'       => MSF_LICENSE,
         'Author'        => [ 'Moritz Lottermann (SySS GmbH)' ],
@@ -31,13 +34,7 @@ class MetasploitModule < Msf::Post
 
   def run
     kwp = KWP2000.new(client, datastore["CANBUS"], "TP20")
-    response = kwp.start_diagnostic_session("89")
-    if response == "89"
-      print_good("Started diagnostc session successfully")
-    else
-      print_error("Could not start diagnostic session")
-    end
-
+    
   end
 
 end
