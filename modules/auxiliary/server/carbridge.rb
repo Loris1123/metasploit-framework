@@ -8,10 +8,11 @@
 ##
 
 require 'msf/core'
-require 'pty'
+require 'msf/core/post/hardware/automotive/transport/tp20'
 
 class MetasploitModule < Msf::Auxiliary
 
+  include Msf::Post::Hardware::Automotive::Transport
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Auxiliary::Report
 
@@ -42,47 +43,24 @@ class MetasploitModule < Msf::Auxiliary
     @server_started = Time.new
     @can_interfaces = []
 
-    # candumbs contain the output of candump when listening for a specific package of the following format:
-    #{"ID1" => [frame1, frame2,...], "ID2" => [frame2, frame3,..]}
-    @candumps = {}
+    @transport_protocol = nil
 
   end
 
-  # Adds the received packages of the given ID to @candumps
-  # TODO: Check if listener for ID is already given.
-  # TODO: maybe add a custom identifier, to allow multiple listeners for an ID
-  # TODO: Add support for multiple buses
-  def candump_listener(bus, id)
-    # Run the command in background and continiously grap the output
-    # See http://stackoverflow.com/questions/1154846/continuously-read-from-stdout-of-external-process-in-ruby
-    @candumps[id.to_s] = [] if @candumps[id.to_s].nil?
+  def set_transport_protocol(bus, protocol)
+    puts "ProtocoL: #{protocol}"
+    puts "Current Class: #{@transport_protocol.class}"
+    return if "Msf::Post::Hardware::Automotive::Transport::#{protocol}" == @transport_protocol.class.to_s
 
-    command = "candump #{bus},#{id}:FFF"
-    Thread.new do
-      PTY.spawn(command) do |stdout, stdin, pid|
-        begin
-          stdout.each{ |l| @candumps[id.to_s].push(l.split()[3..-1])}
-        end
-      end
+    if @transport_protocol != nil && @transport_protocol.class != protocol
+      print_warning("WARNING: Changing transport protocol from #{@transport_protocol} to #{protocol}")
     end
-    {"status" => "success"}  # Response
-  end
 
-  def candump(bus, id, timeout, maxpkts)
-    $candump_sniffer = Thread.new do
-      output = `candump #{bus},#{id}:FFFFFF -T #{timeout} -n #{maxpkts}`
-      @pkt_response = candump2hash(output)
-      Thread::exit
-    end
-  end
-
-  # Returns <count> numbers of CAN packages from the buffered frames of ID <id>
-  # from @candumps
-  def get_buffered_packages(id, count)
-    if @candumps[id.to_s].nil?
-      {"status" => "No buffer of id #{id} available"}
+    case protocol
+    when "TP20"
+      @transport_protocol = TP20.new(bus)
     else
-      @candumps[id.to_s].shift(count.to_i)
+      print_error "Unknown protocol: #{protocol}"
     end
   end
 
@@ -133,8 +111,6 @@ class MetasploitModule < Msf::Auxiliary
   def get_ip_config
   end
 
-
-
   def get_auto_supported_buses
     detect_can()
     buses = []
@@ -142,33 +118,6 @@ class MetasploitModule < Msf::Auxiliary
       buses << { "bus_name" => can }
     end
     buses
-  end
-
-  # Sends a raw CAN packet
-  # bus = string
-  # id = hex ID
-  # data = string of up to 8 hex bytes
-  def cansend(bus, id, data)
-    result = {}
-    result["Success"] = false
-    id = id.to_i(16).to_s(16)  # Clean up the HEX
-    bytes = data.scan(/../)  # Break up data string into 2 char (byte) chunks
-    if bytes.size > 8
-      print_error("Data section can only contain a max of 8 bytes")
-      return result
-    end
-    `which cansend`
-    unless $?.success?
-      print_error("cansend from can-utils not found in path")
-      return result
-    end
-    @can_interfaces.each do |can|
-      if can == bus
-        system("cansend #{bus} #{id}##{bytes.join}")
-        result["Success"] = true if $?.success?
-      end
-    end
-    result
   end
 
   # Converts candump output to {Packets => [{ ID=> id DATA => [] }]}
@@ -187,46 +136,6 @@ class MetasploitModule < Msf::Auxiliary
     hash
   end
 
-
-  # Sends a raw CAN packet and waits for a response or a timeout
-  # bus = string
-  # srcid = hex id of the sent packet
-  # dstid = hex id of the return packets
-  # data = string of hex bytes to send
-  # timeout = optional int to timeout on lack of response
-  # maxpkts = max number of packets to recieve
-  def cansend_and_wait(bus, srcid, dstid, data, timeout=2000, maxpkts=3)
-    result = {}
-    result["Success"] = false
-    srcid = srcid.to_i(16).to_s(16)
-    dstid = dstid.to_i(16).to_s(16)
-    bytes = data.scan(/../)
-    if bytes.size > 8
-      print_error("Data section currently has to be 8 or less bytes")
-      return result
-    else
-      bytes = bytes.join
-    end
-    # Should we ever require isotpsend for this?
-    `which cansend`
-    if not $?.success?
-      print_error("cansend from can-utils not found in path")
-      return result
-    end
-    @can_interfaces.each do |can|
-      if can == bus
-        candump(bus,dstid,timeout,maxpkts)
-        system("cansend #{bus} #{srcid}##{bytes}")
-        result["Success"] = true if $?.success?
-        result["Packets"] = []
-        $candump_sniffer.join
-        if not @pkt_response.empty?
-          result = @pkt_response
-        end
-      end
-    end
-    result
-  end
 
   def not_supported
     { "status" => "not supported" }
@@ -255,24 +164,31 @@ class MetasploitModule < Msf::Auxiliary
       if request.uri =~ /automotive\/supported_buses/
         print_status("Sending known buses...")
         send_response_html(cli, get_auto_supported_buses().to_json, { 'Content-Type' => 'application/json' })
-      elsif request.uri =~ /automotive\/(\w+)\/candump\?id=(\w+)/
-        bus = $1; id = $2
-        print_status("Start candump listener for ID #{id}")
-        send_response_html(cli, candump_listener(bus, id).to_json(), { 'Content-Type' => 'application/json' })
-      elsif request.uri =~ /automotive\/(\w+)\/getbuffer\?id=(\w+)&count=(\w+)/
-        bus = $1; id = $2; count = $3
-        send_response_html(cli, get_buffered_packages(id, count).to_json(), { 'Content-Type' => 'application/json' })
-      elsif request.uri =~ /automotive\/(\w+)\/cansend\?id=(\w+)&data=(\w+)/
-        #print_status("Request to send CAN packets for #{$1} => #{$2}##{$3}")
-        send_response_html(cli, cansend($1, $2, $3).to_json(), { 'Content-Type' => 'application/json' })
-      elsif request.uri =~/automotive\/(\w+)\/cansend_and_wait\?srcid=(\w+)&dstid=(\w+)&data=(\w+)/
-        bus = $1; srcid = $2; dstid = $3; data = $4
-        #print_status("Request to send CAN packet and wait for response  #{srcid}##{data} => #{dstid}")
-        timeout = 1500
-        maxpkts = 3
-        timeout = $1 if request.uri=~/&timeout=(\d+)/
-        maxpkts = $1 if request.uri=~/&maxpkts=(\d+)/
-        send_response_html(cli, cansend_and_wait(bus, srcid, dstid, data, timeout, maxpkts).to_json(), { 'Content-Type' => 'application/json' })
+      elsif request.uri =~ /automotive\/(\w+)\/setTransportProtocol\?tp=(\w+)/
+        print_status("Setting transport protocol to #{$2}")
+        set_transport_protocol($1, $2)
+      elsif request.uri =~ /automotive\/(\w+)\/sendData\?data=(\w+)/
+        @transport_protocol.send($2)
+      elsif request.uri =~ /automotive\/(\w+)\/sendDataAndWaitForResponse\?data=(\w+)/
+        send_response_html(cli, @transport_protocol.send_and_wait_for_response($2).to_json, {'Content-Type' => 'application/json' })
+      #elsif request.uri =~ /automotive\/(\w+)\/candump\?id=(\w+)/
+      #  bus = $1; id = $2
+      #  print_status("Start candump listener for ID #{id}")
+      #  send_response_html(cli, candump_listener(bus, id).to_json(), { 'Content-Type' => 'application/json' })
+      #elsif request.uri =~ /automotive\/(\w+)\/getbuffer\?id=(\w+)&count=(\w+)/
+      #  bus = $1; id = $2; count = $3
+      #  send_response_html(cli, get_buffered_packages(id, count).to_json(), { 'Content-Type' => 'application/json' })
+      #elsif request.uri =~ /automotive\/(\w+)\/cansend\?id=(\w+)&data=(\w+)/
+      #  #print_status("Request to send CAN packets for #{$1} => #{$2}##{$3}")
+      #  send_response_html(cli, cansend($1, $2, $3).to_json(), { 'Content-Type' => 'application/json' })
+      #elsif request.uri =~/automotive\/(\w+)\/cansend_and_wait\?srcid=(\w+)&dstid=(\w+)&data=(\w+)/
+      #  bus = $1; srcid = $2; dstid = $3; data = $4
+      #  #print_status("Request to send CAN packet and wait for response  #{srcid}##{data} => #{dstid}")
+      #  timeout = 1500
+      #  maxpkts = 3
+      #  timeout = $1 if request.uri=~/&timeout=(\d+)/
+      #  maxpkts = $1 if request.uri=~/&maxpkts=(\d+)/
+      #  send_response_html(cli, cansend_and_wait(bus, srcid, dstid, data, timeout, maxpkts).to_json(), { 'Content-Type' => 'application/json' })
       else
         send_response_html(cli, not_supported().to_json(), { 'Content-Type' => 'application/json' })
       end
