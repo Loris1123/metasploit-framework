@@ -48,8 +48,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def set_transport_protocol(bus, protocol)
-    puts "ProtocoL: #{protocol}"
-    puts "Current Class: #{@transport_protocol.class}"
     return if "Msf::Post::Hardware::Automotive::Transport::#{protocol}" == @transport_protocol.class.to_s
 
     if @transport_protocol != nil && @transport_protocol.class != protocol

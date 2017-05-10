@@ -34,7 +34,19 @@ class MetasploitModule < Msf::Post
 
   def run
     kwp = KWP2000.new(client, datastore["CANBUS"], "TP20")
-    
+    found_ids = []
+    current_id = 0x0
+
+    while current_id <=  0xFF
+      response = kwp.read_ecu_identification(current_id.to_s(16))
+      if response[0] != "7F"
+        found_ids.push(current_id)
+      else
+        puts("Rejected ID #{current_id}")
+      end
+      current_id += 1
+    end
+    puts "Found IDs: #{found_ids}"
   end
 
 end

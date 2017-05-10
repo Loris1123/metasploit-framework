@@ -10,7 +10,7 @@ class KWP2000
   # Service IDs
   START_DIAGNOSTIC_SESSION = "10"
   SECURITY_ACCESS = "27"
-  READ_ECU_IDENTIFICATION = "5A"
+  READ_ECU_IDENTIFICATION = "1A"
 
 
   def initialize(client, bus, transport_protocol)
@@ -44,9 +44,9 @@ class KWP2000
   #end
 
 
-  #def read_ecu_identification(param)
-  #  @tp.send_and_wait_for_response("#{READ_ECU_IDENTIFICATION}#{param}")
-  #end
+  def read_ecu_identification(param)
+    @client.automotive.send_data_and_wait_for_response(@bus, "#{READ_ECU_IDENTIFICATION}#{param}")
+  end
 
   # Requesting the seed for security access.
   # Mode is the mode of access.
