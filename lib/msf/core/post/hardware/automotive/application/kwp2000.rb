@@ -56,6 +56,10 @@ class KWP2000
   def security_access_request_seed(mode)
     # First request seed
     response = @client.automotive.send_data_and_wait_for_response(@bus,"#{SECURITY_ACCESS}#{mode}")
+    if response == nil
+      puts "Error"
+      return nil
+    end
     if response[0] == "67" && response [1] == mode
       return response[2..-1]
     end
