@@ -25,7 +25,7 @@ class MetasploitModule < Msf::Post
 
     register_options([
       OptString.new('CANBUS', [true, "CAN Bus to open channel on, defaults to connected bus", nil]),
-      OptString.new('TESTERID', [true, "ID of the messages directed to metaspliot", nil]),
+      OptString.new('TESTERID', [false, "ID of the messages directed to metaspliot", nil]),
     ], self.class)
 
   end
