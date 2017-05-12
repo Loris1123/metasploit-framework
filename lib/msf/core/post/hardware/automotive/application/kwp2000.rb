@@ -13,13 +13,13 @@ class KWP2000
   READ_ECU_IDENTIFICATION = "1A"
 
 
-  def initialize(client, bus, transport_protocol)
+  def initialize(client, bus, transport_protocol, options={})
     @client = client
     @bus = bus
     # Setting transport protocol
     case transport_protocol
     when "TP20"
-      @client.automotive.set_transport_protocol(@bus, "TP20")
+      @client.automotive.set_transport_protocol(@bus, "TP20", options)
     else
       puts "UNKNOWN PROTOCOL"
     end

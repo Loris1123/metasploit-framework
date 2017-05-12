@@ -10,14 +10,14 @@ require 'msf/core/post/hardware/automotive/cantool'
 class TP20
   include Msf::Post::Hardware::Automotive::Cantool
 
-  def initialize(bus)
+  def initialize(bus, options)
     @bus = bus
     @channel_open = false
     @keep_alive = true
 
+    # Set :TESTERID or 300 if not specified in options.
+    @tester_id = (options["TESTERID"] or "300")
     @device_id = nil
-    @tester_id = "300"
-
     @frame_counter = 0
     @ack_counter = 0
   end

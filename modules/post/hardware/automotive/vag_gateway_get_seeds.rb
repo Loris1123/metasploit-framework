@@ -4,13 +4,11 @@
 ##
 
 require 'msf/core'
-require 'msf/core/post/hardware/automotive/transport/tp20'
 require 'msf/core/post/hardware/automotive/application/kwp2000'
 
 
 class MetasploitModule < Msf::Post
 
-  include Msf::Post::Hardware::Automotive::Transport
   include Msf::Post::Hardware::Automotive::Application
 
   def initialize(info={})
@@ -18,7 +16,7 @@ class MetasploitModule < Msf::Post
     super(update_info(info,
         'Name'          => 'VW TP 2.0 Rend Request',
         'Description'   => %q{
-          Retrieves securityaccess seeds from the ECU. Can be used for analyzes
+          Retrieves securityaccess seeds from the ECU. Can be used for analyzes.
           Writes the result into FILE"
         },
         'License'       => MSF_LICENSE,
@@ -40,8 +38,8 @@ class MetasploitModule < Msf::Post
     seeds = []
 
     datastore["TIMES"].times do
-      response = kwp.security_access_request_seed("03")
-      seeds.push(response) if response != nil
+      seed = kwp.security_access_request_seed("03")
+      seeds.push(seed) if seed != nil
       sleep 0.1
     end
 
