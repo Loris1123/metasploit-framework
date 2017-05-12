@@ -34,10 +34,16 @@ class MetasploitModule < Msf::Post
   end
 
   def run
+    if File.exists?(datastore["FILE"])
+      print_error("File already exists. Please choose another one")
+      return
+    end
+
     kwp = KWP2000.new(client, datastore["CANBUS"], "TP20")
     seeds = []
 
-    datastore["TIMES"].times do
+    datastore["TIMES"].times do |n|
+      puts "Requested #{n} seeds" if n % 100 == 0
       seed = kwp.security_access_request_seed("03")
       seeds.push(seed) if seed != nil
       sleep 0.1
