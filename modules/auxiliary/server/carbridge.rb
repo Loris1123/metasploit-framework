@@ -9,12 +9,14 @@
 
 require 'msf/core'
 require 'msf/core/post/hardware/automotive/transport/tp20'
+require 'msf/core/post/hardware/automotive/cantool'
 
 class MetasploitModule < Msf::Auxiliary
 
   include Msf::Post::Hardware::Automotive::Transport
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Auxiliary::Report
+  include Msf::Post::Hardware::Automotive::Cantool
 
   HWBRIDGE_API_VERSION = "0.0.1"
 
@@ -168,26 +170,10 @@ class MetasploitModule < Msf::Auxiliary
         set_transport_protocol($1, $2, options)
       elsif request.uri =~ /automotive\/(\w+)\/sendData\?data=(\w+)/
         @transport_protocol.send($2)
+      elsif request.uri =~ /automotive\/(\w+)\/cansend\?id=(\w+)&data=(\w+)/
+        cansend($1, $2, $3)
       elsif request.uri =~ /automotive\/(\w+)\/sendDataAndWaitForResponse\?data=(\w+)/
         send_response_html(cli, @transport_protocol.send_and_wait_for_response($2).to_json, {'Content-Type' => 'application/json' })
-      #elsif request.uri =~ /automotive\/(\w+)\/candump\?id=(\w+)/
-      #  bus = $1; id = $2
-      #  print_status("Start candump listener for ID #{id}")
-      #  send_response_html(cli, candump_listener(bus, id).to_json(), { 'Content-Type' => 'application/json' })
-      #elsif request.uri =~ /automotive\/(\w+)\/getbuffer\?id=(\w+)&count=(\w+)/
-      #  bus = $1; id = $2; count = $3
-      #  send_response_html(cli, get_buffered_packages(id, count).to_json(), { 'Content-Type' => 'application/json' })
-      #elsif request.uri =~ /automotive\/(\w+)\/cansend\?id=(\w+)&data=(\w+)/
-      #  #print_status("Request to send CAN packets for #{$1} => #{$2}##{$3}")
-      #  send_response_html(cli, cansend($1, $2, $3).to_json(), { 'Content-Type' => 'application/json' })
-      #elsif request.uri =~/automotive\/(\w+)\/cansend_and_wait\?srcid=(\w+)&dstid=(\w+)&data=(\w+)/
-      #  bus = $1; srcid = $2; dstid = $3; data = $4
-      #  #print_status("Request to send CAN packet and wait for response  #{srcid}##{data} => #{dstid}")
-      #  timeout = 1500
-      #  maxpkts = 3
-      #  timeout = $1 if request.uri=~/&timeout=(\d+)/
-      #  maxpkts = $1 if request.uri=~/&maxpkts=(\d+)/
-      #  send_response_html(cli, cansend_and_wait(bus, srcid, dstid, data, timeout, maxpkts).to_json(), { 'Content-Type' => 'application/json' })
       else
         send_response_html(cli, not_supported().to_json(), { 'Content-Type' => 'application/json' })
       end
