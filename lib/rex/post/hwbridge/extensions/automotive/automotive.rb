@@ -2,6 +2,7 @@
 # -*- coding: binary -*-
 require 'rex/post/hwbridge/extensions/automotive/uds_errors'
 require 'rex/post/hwbridge/client'
+require 'json'
 
 module Rex
 module Post
@@ -128,8 +129,8 @@ class Automotive < Extension
     nil
   end
 
-  def set_transport_protocol(bus, transport_protocol)
-    client.send_request("/automotive/#{bus}/setTransportProtocol?tp=#{transport_protocol}")
+  def set_transport_protocol(bus, transport_protocol, options)
+    client.send_request("/automotive/#{bus}/setTransportProtocol?tp=#{transport_protocol}&options=#{options.to_json}")
   end
 
   def send_data(bus, data)

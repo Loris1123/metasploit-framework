@@ -25,12 +25,13 @@ class MetasploitModule < Msf::Post
 
     register_options([
       OptString.new('CANBUS', [true, "CAN Bus to open channel on, defaults to connected bus", nil]),
+      OptString.new('TESTERID', [true, "ID of the messages directed to metaspliot", nil]),
     ], self.class)
 
   end
 
   def run
-    kwp = KWP2000.new(client, datastore["CANBUS"], "TP20")
+    kwp = KWP2000.new(client, datastore["CANBUS"], "TP20", {TESTERID: datastore["TESTERID"]})
     response = kwp.start_diagnostic_session("89")
     if response == "89"
       print_good("Started diagnostc session successfully")

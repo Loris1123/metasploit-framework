@@ -47,7 +47,7 @@ class MetasploitModule < Msf::Auxiliary
 
   end
 
-  def set_transport_protocol(bus, protocol)
+  def set_transport_protocol(bus, protocol, options)
     return if "Msf::Post::Hardware::Automotive::Transport::#{protocol}" == @transport_protocol.class.to_s
 
     if @transport_protocol != nil && @transport_protocol.class != protocol
@@ -56,7 +56,7 @@ class MetasploitModule < Msf::Auxiliary
 
     case protocol
     when "TP20"
-      @transport_protocol = TP20.new(bus)
+      @transport_protocol = TP20.new(bus, options)
     else
       print_error "Unknown protocol: #{protocol}"
     end
@@ -162,9 +162,10 @@ class MetasploitModule < Msf::Auxiliary
       if request.uri =~ /automotive\/supported_buses/
         print_status("Sending known buses...")
         send_response_html(cli, get_auto_supported_buses().to_json, { 'Content-Type' => 'application/json' })
-      elsif request.uri =~ /automotive\/(\w+)\/setTransportProtocol\?tp=(\w+)/
+      elsif request.uri =~ /automotive\/(\w+)\/setTransportProtocol\?tp=(\w+)&options=(.+)/
         print_status("Setting transport protocol to #{$2}")
-        set_transport_protocol($1, $2)
+        options = JSON.parse(URI.unescape($3))
+        set_transport_protocol($1, $2, options)
       elsif request.uri =~ /automotive\/(\w+)\/sendData\?data=(\w+)/
         @transport_protocol.send($2)
       elsif request.uri =~ /automotive\/(\w+)\/sendDataAndWaitForResponse\?data=(\w+)/
