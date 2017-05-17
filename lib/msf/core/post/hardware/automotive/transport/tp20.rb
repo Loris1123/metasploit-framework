@@ -55,7 +55,7 @@ class TP20
     end
 
     # Last Frame
-    cansend(@bus, @device_id, "1#{(@frame_counter + 5).to_s(16)}#{frame_data}")
+    cansend(@bus, @device_id, "1#{(@frame_counter).to_s(16)}#{frame_data}")
     @frame_counter = (@frame_counter + 1) % 16
   end
 
@@ -148,6 +148,12 @@ class TP20
     keep_alive
     sleep 0.5 # To prevent timing issues. "send" could be faster than the first keep_alive
     return true
+  end
+
+  # Closes the current open channel
+  def stop_communication
+    @keep_alive = false
+    cansend(@bus, @device_id, 'A8')
   end
 
   # Send an acknowledge.

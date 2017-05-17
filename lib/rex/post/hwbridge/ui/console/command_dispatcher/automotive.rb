@@ -21,15 +21,19 @@ class Console::CommandDispatcher::Automotive
       'supported_buses'   => 'Get supported buses',
       'busconfig'         => 'Get baud configs',
       'connect'           => 'Get HW supported methods for a bus',
-      'cansend'           => 'Send a CAN packet'
+      'cansend'           => 'Send a raw CAN packet',
+      'datasend'          => 'Send data by using the specified tansport protocol',
+      'stop'              => 'Stops and disables all communications'
     }
 
-    reqs = {
-      'supported_buses'  => ['get_supported_buses'],
-      'busconfig'        => ['get_bus_config'],
-      'connect'          => ['get_supported_methods'],
-      'cansend'          => ['cansend']
-    }
+    # Why Necessary? Commented out until clear. No malfunction found yet
+    #reqs = {
+    #  'supported_buses'  => ['get_supported_buses'],
+    #  'busconfig'        => ['get_bus_config'],
+    #  'connect'          => ['get_supported_methods'],
+    #  'cansend'          => ['cansend'],
+    #  'datasend'         => ['datasend']
+    #}
 
     # Ensure any requirements of the command are met
     all
@@ -115,6 +119,43 @@ class Console::CommandDispatcher::Automotive
   end
 
   #
+  # Sends data based on the specified transport protocol
+  # and returns the response
+  #
+  def cmd_datasend(*args)
+    bus = ''
+    id = ''
+    data = ''
+    cansend_opts = Rex::Parser::Arguments.new(
+      '-h' => [ false, 'Help Banner' ],
+      '-b' => [ true, 'Target bus'],
+      '-D' => [ true, 'Data packet in Hex']
+    )
+    cansend_opts.parse(args) do |opt, _idx, val|
+      case opt
+      when '-h'
+        print_line("Usage: cansend -I <ID> -D <data>\n")
+        print_line(cansend_opts.usage)
+        return
+      when '-b'
+        bus = val
+      when '-D'
+        data = val
+      end
+    end
+    bus = active_bus if bus.blank? && !active_bus.nil?
+    unless client.automotive.is_valid_bus? bus
+      print_error("You must specify a valid bus via -b")
+      return
+    end
+    if data.blank?
+      print_error("You must specify the data packets (-D)")
+      return
+    end
+    client.automotive.send_data_and_wait_for_response(bus, data)
+  end
+
+  #
   # Generic CAN send packet command
   #
   def cmd_cansend(*args)
@@ -150,8 +191,15 @@ class Console::CommandDispatcher::Automotive
       print_error("You must specify a CAN ID (-I) and the data packets (-D)")
       return
     end
-    success = client.automotive.cansend(bus, id, data)
-    success
+    client.automotive.cansend(bus, id, data)
+  end
+
+  #
+  # Generic CAN send packet command
+  #
+  def cmd_stop()
+    print_line("Stopping communication and resetting carbridge")
+    client.automotive.stop
   end
 
   #
@@ -171,4 +219,3 @@ end
 end
 end
 end
-

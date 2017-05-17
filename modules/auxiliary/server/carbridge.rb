@@ -136,6 +136,10 @@ class MetasploitModule < Msf::Auxiliary
     hash
   end
 
+  def stop
+    @transport_protocol.stop_communication
+    @transport_protocol= nil
+  end
 
   def not_supported
     { "status" => "not supported" }
@@ -160,6 +164,9 @@ class MetasploitModule < Msf::Auxiliary
     elsif request.uri =~ /custom\/sample_cmd\?data=(\S+)$/
       print_status("Request for custom command with args #{$1}")
       send_response_html(cli, sample_custom_method($1).to_json(), { 'Content-Type' => 'application/json' })
+    elsif request.uri =~ /automotive\/stop/
+      print_status("Stopping communication")
+      stop()
     elsif request.uri =~ /automotive/i
       if request.uri =~ /automotive\/supported_buses/
         print_status("Sending known buses...")

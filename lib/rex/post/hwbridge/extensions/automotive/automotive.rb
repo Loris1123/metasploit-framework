@@ -141,6 +141,10 @@ class Automotive < Extension
     client.send_request("/automotive/#{bus}/sendDataAndWaitForResponse?data=#{data}")
   end
 
+  def stop()
+    client.send_request("/automotive/stop")
+  end
+
   attr_reader :buses, :active_bus
 
   private
