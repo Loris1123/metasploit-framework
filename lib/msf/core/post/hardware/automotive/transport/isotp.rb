@@ -21,6 +21,10 @@ require 'msf/core/post/hardware/automotive/cantool'
     def send_data_and_wait_for_response(data)
       raise "Not yet implemented"
     end
+
+    def stop_communication
+
+    end
   end
 
 end
