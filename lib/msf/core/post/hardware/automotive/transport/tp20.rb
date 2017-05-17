@@ -55,7 +55,11 @@ class TP20
     end
 
     # Last Frame
+<<<<<<< HEAD
     cansend(@bus, @device_id, "1#{(@frame_counter).to_s(16)}#{frame_data}")
+=======
+    cansend(@bus, @device_id, "1#{(@frame_counter + 5).to_s(16)}#{frame_data}")
+>>>>>>> 6763c89e33da58574edde57b683fde2bc9af68c6
     @frame_counter = (@frame_counter + 1) % 16
   end
 
